@@ -29,7 +29,13 @@ For the next development session, we will focus on implementing the court discov
 - Test different scenarios (no courts, multiple courts, filtering)
 - Create an integration test that uses the authentication module
 
-### 5. Document the API
+### 5. Create Court Discovery Test Script
+- Create a test script similar to `test-auth.ts` for court discovery (`scripts/test-courts.ts`)
+- Ensure the script tests the end-to-end functionality of court discovery
+- Include authentication as a prerequisite step
+- Make the script runnable via npm script (`npm run test:courts`)
+
+### 6. Document the API
 - Add JSDoc comments to all methods
 - Update the README with court discovery examples
 - Document any limitations or edge cases
@@ -42,6 +48,19 @@ For the next development session, we will focus on implementing the court discov
 4. Create tests in `tests/modules/courts/courts.module.test.ts`
 5. Create a script for testing court discovery in `scripts/test-courts.ts`
 6. Update the main index.ts to export the new module
+7. Run the authentication test (`npm run test:auth`) to ensure our changes don't break authentication
+
+## Development Process
+
+To maintain the quality and reliability of our SDK, we'll follow these practices during development:
+
+1. **Run Authentication Test**: Before committing any changes, run `npm run test:auth` to ensure we haven't broken the authentication functionality.
+
+2. **Create Court Discovery Test**: Develop a similar test script for court discovery that will become part of our standard testing process.
+
+3. **Incremental Development**: Implement and test one feature at a time, ensuring each component works before moving to the next.
+
+4. **Documentation Updates**: Keep documentation updated as we implement new features.
 
 ## Expected Challenges
 
@@ -54,7 +73,8 @@ For the next development session, we will focus on implementing the court discov
 ## Success Criteria
 
 - The court discovery methods should work with the actual ClubExpress platform
-- All tests should pass
+- All tests should pass, including the authentication test
+- The new court discovery test script should successfully verify the functionality
 - The API should be well-documented
 - The module should be integrated into the main SDK export
 - The implementation should follow our HTTP-first approach
@@ -66,4 +86,5 @@ Before the next session, we should:
 1. Explore the ClubExpress court booking pages manually to understand the flow
 2. Take screenshots or save HTML of relevant pages for analysis
 3. Identify any club-specific customizations that might affect the implementation
-4. Review the authentication module to ensure we can leverage it effectively for court discovery 
+4. Review the authentication module to ensure we can leverage it effectively for court discovery
+5. Run the authentication test to ensure we're starting with a solid foundation 

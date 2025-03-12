@@ -10,6 +10,27 @@ This document outlines the implementation plan for the ClubExpress SDK, focusing
 - **Clean Architecture**: Maintain a clean, modular project structure
 - **Test-Driven**: Ensure all functionality is thoroughly tested
 
+## Testing Approach
+
+Our testing strategy includes multiple layers to ensure the reliability of the SDK:
+
+### Unit Tests
+We write unit tests for individual components and methods, mocking external dependencies where appropriate.
+
+### Integration Tests
+We create integration tests that verify the interaction between different modules within the SDK.
+
+### End-to-End Test Scripts
+For each major module, we develop end-to-end test scripts that verify functionality against the actual ClubExpress platform:
+
+1. **Authentication Test Script** (`scripts/test-auth.ts`): Tests the complete authentication flow, including login, session validation, and logout.
+
+2. **Court Discovery Test Script** (planned): Will test the ability to find courts and check availability.
+
+3. **Court Booking Test Script** (planned): Will test the ability to book courts and manage bookings.
+
+These test scripts are run as part of our development process before committing changes to ensure we don't introduce regressions.
+
 ## Phase 1: Project Setup and Authentication (Completed)
 
 ### 1.1 Project Setup (Completed)
@@ -48,6 +69,7 @@ This document outlines the implementation plan for the ClubExpress SDK, focusing
 - [ ] Implement method to find available courts by date/time
 - [ ] Add filtering capabilities (court type, features)
 - [ ] Create tests for court discovery
+- [ ] Create end-to-end test script for court discovery
 - [ ] Document court discovery API
 
 ### 2.2 Court Booking
@@ -56,6 +78,7 @@ This document outlines the implementation plan for the ClubExpress SDK, focusing
 - [ ] Handle booking confirmation
 - [ ] Implement error handling for booking failures
 - [ ] Create tests for court booking
+- [ ] Create end-to-end test script for court booking
 - [ ] Document court booking API
 
 ### 2.3 Booking Management
@@ -64,6 +87,7 @@ This document outlines the implementation plan for the ClubExpress SDK, focusing
 - [ ] Implement method to cancel a booking
 - [ ] Add booking modification capabilities (if supported)
 - [ ] Create tests for booking management
+- [ ] Create end-to-end test script for booking management
 - [ ] Document booking management API
 
 ## Phase 3: Additional Features and Refinement

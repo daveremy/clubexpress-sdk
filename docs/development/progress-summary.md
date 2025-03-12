@@ -39,6 +39,26 @@ We have completed the initial project setup and successfully implemented the cor
 - [x] Create authentication tests
 - [x] Document authentication API
 
+## Development Process
+
+To ensure the reliability of our SDK, we've established the following development process:
+
+### Authentication Testing
+
+The authentication module is a critical foundation for all other functionality in the SDK. To prevent regressions, we run the authentication test script (`npm run test:auth`) before committing any changes that might affect authentication or the HTTP client.
+
+This script performs a complete end-to-end test of the authentication flow:
+1. Accessing the ClubExpress site
+2. Logging in with valid credentials
+3. Validating the session
+4. Logging out
+
+This test has proven invaluable for identifying subtle issues in our implementation, particularly around cookie handling and session validation. We consider this a first-class test that must pass before any changes are committed.
+
+### Integration Testing
+
+As we develop additional modules (such as court booking), we'll create similar test scripts that verify the end-to-end functionality of each module. These scripts will be run as part of our pre-commit process to ensure that changes don't break existing functionality.
+
 ## Next Steps
 
 ### Phase 2: Court Booking - First Vertical Slice
