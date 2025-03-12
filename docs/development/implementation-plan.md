@@ -10,7 +10,7 @@ This document outlines the implementation plan for the ClubExpress SDK, focusing
 - **Clean Architecture**: Maintain a clean, modular project structure
 - **Test-Driven**: Ensure all functionality is thoroughly tested
 
-## Phase 1: Project Setup and Authentication
+## Phase 1: Project Setup and Authentication (Completed)
 
 ### 1.1 Project Setup (Completed)
 
@@ -42,7 +42,7 @@ This document outlines the implementation plan for the ClubExpress SDK, focusing
 
 ## Phase 2: Court Booking - First Vertical Slice (Current)
 
-### 2.1 Court Discovery
+### 2.1 Court Discovery (Current)
 
 - [ ] Implement method to find all courts
 - [ ] Implement method to find available courts by date/time
@@ -107,7 +107,7 @@ This document outlines the implementation plan for the ClubExpress SDK, focusing
 2. **Session Management**
    - [x] Store session information
    - [x] Detect session expiration
-   - [ ] Implement session renewal
+   - [x] Implement session validation
    - [x] Handle invalid sessions
 
 3. **Logout Process**

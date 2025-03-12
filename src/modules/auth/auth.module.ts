@@ -1,152 +1,208 @@
 import { ClubExpressClient } from '../../core/client';
-import { ClubExpressError } from '../../core/types';
-import { LoginCredentials, LoginResponse, LogoutResponse, UserInfo } from './types';
+import { ClubExpressError } from '../../core/error';
+import * as cheerio from 'cheerio';
 
 /**
  * Authentication module for ClubExpress
  * Handles login, logout, and session management
  */
 export class AuthModule {
-  private client: ClubExpressClient;
-  private currentUser: UserInfo | null = null;
+  constructor(private client: ClubExpressClient) {}
 
   /**
-   * Create a new authentication module
-   * @param client ClubExpress client instance
+   * Login to ClubExpress
+   * @param username Username
+   * @param password Password
+   * @param rememberMe Remember me on this computer
+   * @returns True if login was successful
    */
-  constructor(client: ClubExpressClient) {
-    this.client = client;
-  }
+  async login(username: string, password: string, rememberMe: boolean = false): Promise<boolean> {
+    if (!username || !password) {
+      throw new ClubExpressError('LOGIN_MISSING_CREDENTIALS', 'Username and password are required');
+    }
 
-  /**
-   * Log in to ClubExpress
-   * @param credentials Login credentials
-   * @returns Login response
-   */
-  public async login(credentials: LoginCredentials): Promise<LoginResponse> {
+    this.client.debug('Accessing main page to initialize session...');
+    // First, access the main page to initialize cookies
+    await this.client.get(`/content.aspx?page_id=0&club_id=${this.client.getClubId()}`);
+
+    // Access the login page
+    this.client.debug('Accessing login page...');
+    const loginPageUrl = `/content.aspx?page_id=31&club_id=${this.client.getClubId()}`;
+    const loginPageResponse = await this.client.get(loginPageUrl);
+    const $ = cheerio.load(loginPageResponse.data);
+
+    // Extract all hidden form fields
+    const hiddenFields: Record<string, string> = {};
+    $('input[type="hidden"]').each((_, element) => {
+      const name = $(element).attr('name');
+      const value = $(element).attr('value') || '';
+      if (name) {
+        this.client.debug(`Found hidden field: ${name.split('$').pop()}`);
+        hiddenFields[name] = value;
+      }
+    });
+
+    // Encode password in Base64 as the site does
+    const encodedPassword = Buffer.from(password).toString('base64');
+    this.client.debug('Password encoded');
+
+    // Prepare the login payload with all necessary fields
+    const loginPayload: Record<string, string> = {
+      ...hiddenFields,
+      'ctl00$ctl00$login_name': username,
+      'ctl00$ctl00$hiddenPassword': encodedPassword,
+      'ctl00$ctl00$password': '', // Original password field is left empty
+      '__EVENTTARGET': 'ctl00$ctl00$login_button',
+      '__EVENTARGUMENT': '',
+    };
+
+    // Add remember me checkbox if selected
+    if (rememberMe) {
+      loginPayload['ctl00$ctl00$remember_user_checkbox'] = 'on';
+    }
+
+    // Add dummy field which is present in the form
+    loginPayload['ctl00$ctl00$dummy'] = '';
+    this.client.debug('Added dummy field');
+
+    // Submit the login form
+    this.client.debug('Submitting login form...');
+    const loginResponse = await this.client.post(loginPageUrl, loginPayload);
+
+    // Check for login errors in the response
+    const loginHtml = cheerio.load(loginResponse.data);
+    const errorMessage = loginHtml('.error-message').text().trim();
+    if (errorMessage) {
+      throw new ClubExpressError('LOGIN_ERROR', `Login failed: ${errorMessage}`);
+    }
+
+    // Verify login by checking if we can access the profile page
+    this.client.debug('Verifying login by accessing member profile...');
     try {
-      // First, get the login page to extract any necessary tokens
-      const loginPageUrl = `/clubs/${this.client.getClubId()}/login.aspx`;
-      const loginPageResponse = await this.client.get<string>(loginPageUrl);
-      
-      // Parse the login page HTML
-      const $ = this.client.parseHtml(loginPageResponse.data);
-      
-      // Extract form fields and values
-      const viewState = $('#__VIEWSTATE').val() as string;
-      const viewStateGenerator = $('#__VIEWSTATEGENERATOR').val() as string;
-      const eventValidation = $('#__EVENTVALIDATION').val() as string;
-      
-      if (!viewState || !viewStateGenerator || !eventValidation) {
-        throw new ClubExpressError('Failed to extract form fields from login page', {
-          code: 'LOGIN_FORM_EXTRACTION_FAILED',
-        });
+      const isLoggedIn = await this.validateSession();
+      if (!isLoggedIn) {
+        throw new ClubExpressError('LOGIN_FAILED', 'Login failed: Could not confirm successful login');
       }
-      
-      // Prepare login form data
-      const formData = new URLSearchParams();
-      formData.append('__VIEWSTATE', viewState);
-      formData.append('__VIEWSTATEGENERATOR', viewStateGenerator);
-      formData.append('__EVENTVALIDATION', eventValidation);
-      formData.append('ctl01$ContentPlaceHolder1$Login1$UserName', credentials.username);
-      formData.append('ctl01$ContentPlaceHolder1$Login1$Password', credentials.password);
-      formData.append('ctl01$ContentPlaceHolder1$Login1$LoginButton', 'Log In');
-      
-      // Submit login form
-      const loginResponse = await this.client.post<string>(
-        loginPageUrl,
-        formData.toString(),
-        {
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'Referer': `${this.client.getClubId()}/login.aspx`,
-          },
-        }
-      );
-      
-      // Check if login was successful
-      const loginHtml = this.client.parseHtml(loginResponse.data);
-      const errorMessage = loginHtml('#ctl01_ContentPlaceHolder1_Login1_FailureText').text().trim();
-      
-      if (errorMessage) {
-        return {
-          success: false,
-          error: errorMessage,
-        };
-      }
-      
-      // Extract user information
-      const userName = loginHtml('.user-name').text().trim();
-      
-      // Set authentication status
-      this.client.setAuthStatus(true);
-      
-      // Set user information
-      this.currentUser = {
-        name: userName,
-      };
-      
-      return {
-        success: true,
-        user: this.currentUser,
-      };
+      return true;
     } catch (error) {
       if (error instanceof ClubExpressError) {
         throw error;
       }
-      
-      throw new ClubExpressError('Login failed', {
-        code: 'LOGIN_FAILED',
-        cause: error as Error,
-      });
+      throw new ClubExpressError('LOGIN_FAILED', 'Login failed: Could not confirm successful login');
     }
   }
 
   /**
-   * Log out from ClubExpress
-   * @returns Logout response
+   * Validate if the current session is authenticated
+   * @returns True if the session is valid
    */
-  public async logout(): Promise<LogoutResponse> {
+  async validateSession(): Promise<boolean> {
     try {
-      // Get the logout URL
-      const logoutUrl = `/clubs/${this.client.getClubId()}/logout.aspx`;
-      
-      // Send logout request
-      await this.client.get<string>(logoutUrl);
-      
-      // Clear session data
-      this.client.clearCookies();
-      this.client.setAuthStatus(false);
-      this.currentUser = null;
-      
-      return {
-        success: true,
-      };
-    } catch (error) {
-      if (error instanceof ClubExpressError) {
-        throw error;
+      // Try to access the profile page which requires authentication
+      const profileUrl = `/content.aspx?club_id=${this.client.getClubId()}&module=Member&target=MyProfile`;
+      const profileResponse = await this.client.get(profileUrl);
+      const $ = cheerio.load(profileResponse.data);
+
+      // Check if there's a login link or form on the page
+      const hasLoginLink = $('a:contains("Member Login")').length > 0;
+      const hasLoginForm = $('#ctl00_ctl00_login_box').length > 0;
+
+      if (hasLoginLink || hasLoginForm) {
+        this.client.debug('Session validation failed: Login link found on profile page');
+        return false;
       }
+
+      // Check for logout link or member-only content
+      const hasLogoutLink = $('a:contains("Logout")').length > 0;
+      const hasMemberArea = $('.member-area').length > 0 || $('.member-profile').length > 0;
+      const hasUserPanel = $('.user-panel').length > 0;
+
+      if (hasLogoutLink || hasMemberArea || hasUserPanel) {
+        this.client.debug('Session validation successful: Found member content');
+        return true;
+      }
+
+      // If we can't definitively determine the login state, try the dashboard
+      const dashboardUrl = `/content.aspx?page_id=2&club_id=${this.client.getClubId()}`;
+      const dashboardResponse = await this.client.get(dashboardUrl);
+      const dashboard$ = cheerio.load(dashboardResponse.data);
+
+      // Check if there's a login link on the dashboard
+      const dashboardHasLoginLink = dashboard$('a:contains("Member Login")').length > 0;
+      if (dashboardHasLoginLink) {
+        this.client.debug('Session validation failed: Login link found on dashboard');
+        return false;
+      }
+
+      // Check for member-only content on the dashboard
+      const dashboardHasMemberContent = dashboard$('.member-area').length > 0 || 
+                                       dashboard$('.member-profile').length > 0 ||
+                                       dashboard$('.user-panel').length > 0;
       
-      throw new ClubExpressError('Logout failed', {
-        code: 'LOGOUT_FAILED',
-        cause: error as Error,
-      });
+      if (dashboardHasMemberContent) {
+        this.client.debug('Session validation successful: Found member content on dashboard');
+        return true;
+      }
+
+      this.client.debug('Session validation inconclusive');
+      return false;
+    } catch (error) {
+      this.client.debug(`Session validation error: ${error}`);
+      return false;
+    }
+  }
+
+  /**
+   * Logout from ClubExpress
+   * @returns True if logout was successful
+   */
+  async logout(): Promise<boolean> {
+    try {
+      // Access the logout page
+      const logoutUrl = `/content.aspx?page_id=31&club_id=${this.client.getClubId()}&action=logout`;
+      await this.client.get(logoutUrl);
+      
+      // Verify logout was successful
+      const isStillLoggedIn = await this.validateSession();
+      return !isStillLoggedIn;
+    } catch (error) {
+      throw new ClubExpressError('LOGOUT_FAILED', 'Logout failed');
     }
   }
 
   /**
    * Check if the user is logged in
-   * @returns True if logged in
+   * @returns True if the user is logged in
    */
-  public isLoggedIn(): boolean {
-    return this.client.isLoggedIn();
+  async isLoggedIn(): Promise<boolean> {
+    return this.validateSession();
   }
 
   /**
    * Get the current user information
-   * @returns User information or null if not logged in
+   * @returns User information
    */
-  public getCurrentUser(): UserInfo | null {
-    return this.currentUser;
+  async getCurrentUser(): Promise<any> {
+    if (!(await this.isLoggedIn())) {
+      throw new ClubExpressError('NOT_LOGGED_IN', 'User is not logged in');
+    }
+
+    try {
+      // Access the profile page to get user information
+      const profileUrl = `/content.aspx?club_id=${this.client.getClubId()}&module=Member&target=MyProfile`;
+      const profileResponse = await this.client.get(profileUrl);
+      const $ = cheerio.load(profileResponse.data);
+
+      // Extract user information from the profile page
+      // This is a placeholder and should be customized based on the actual page structure
+      const userInfo = {
+        username: $('.user-name').text().trim() || $('.profile-name').text().trim(),
+        // Add more user information as needed
+      };
+
+      return userInfo;
+    } catch (error) {
+      throw new ClubExpressError('USER_INFO_FAILED', 'Failed to get user information');
+    }
   }
 } 
