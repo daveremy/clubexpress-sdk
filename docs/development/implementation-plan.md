@@ -21,7 +21,7 @@ This document outlines the implementation plan for the ClubExpress SDK, focusing
 - [x] Configure testing framework (Jest)
 - [x] Set up linting and code formatting
 - [x] Create .env file for credentials
-- [ ] Set up GitHub repository
+- [x] Set up GitHub repository
 
 ### 1.2 HTTP Client Implementation (Completed)
 
