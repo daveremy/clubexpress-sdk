@@ -238,6 +238,15 @@ export class ClubExpressClient {
   }
 
   /**
+   * Set debug mode
+   * @param enabled Whether to enable debug mode
+   */
+  setDebugMode(enabled: boolean): void {
+    this.debugEnabled = enabled;
+    this.debug(`Debug mode ${enabled ? 'enabled' : 'disabled'}`);
+  }
+
+  /**
    * Log a debug message
    * @param message The message to log
    */

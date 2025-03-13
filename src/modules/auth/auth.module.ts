@@ -83,6 +83,10 @@ export class AuthModule {
       if (!isLoggedIn) {
         throw new ClubExpressError('LOGIN_FAILED', 'Login failed: Could not confirm successful login');
       }
+      
+      // Set the authentication status in the client
+      this.client.setAuthStatus(true);
+      
       return true;
     } catch (error) {
       if (error instanceof ClubExpressError) {
@@ -109,6 +113,7 @@ export class AuthModule {
 
       if (hasLoginLink || hasLoginForm) {
         this.client.debug('Session validation failed: Login link found on profile page');
+        this.client.setAuthStatus(false);
         return false;
       }
 
@@ -119,6 +124,7 @@ export class AuthModule {
 
       if (hasLogoutLink || hasMemberArea || hasUserPanel) {
         this.client.debug('Session validation successful: Found member content');
+        this.client.setAuthStatus(true);
         return true;
       }
 
@@ -131,6 +137,7 @@ export class AuthModule {
       const dashboardHasLoginLink = dashboard$('a:contains("Member Login")').length > 0;
       if (dashboardHasLoginLink) {
         this.client.debug('Session validation failed: Login link found on dashboard');
+        this.client.setAuthStatus(false);
         return false;
       }
 
@@ -141,13 +148,16 @@ export class AuthModule {
       
       if (dashboardHasMemberContent) {
         this.client.debug('Session validation successful: Found member content on dashboard');
+        this.client.setAuthStatus(true);
         return true;
       }
 
       this.client.debug('Session validation inconclusive');
+      this.client.setAuthStatus(false);
       return false;
     } catch (error) {
       this.client.debug(`Session validation error: ${error}`);
+      this.client.setAuthStatus(false);
       return false;
     }
   }
@@ -158,15 +168,25 @@ export class AuthModule {
    */
   async logout(): Promise<boolean> {
     try {
-      // Access the logout page
+      // Access the logout URL
       const logoutUrl = `/content.aspx?page_id=31&club_id=${this.client.getClubId()}&action=logout`;
       await this.client.get(logoutUrl);
       
-      // Verify logout was successful
+      // Verify logout by checking if we can access the profile page
       const isStillLoggedIn = await this.validateSession();
-      return !isStillLoggedIn;
+      if (isStillLoggedIn) {
+        throw new ClubExpressError('LOGOUT_FAILED', 'Logout failed: Still logged in after logout attempt');
+      }
+      
+      // Set the authentication status in the client
+      this.client.setAuthStatus(false);
+      
+      return true;
     } catch (error) {
-      throw new ClubExpressError('LOGOUT_FAILED', 'Logout failed');
+      if (error instanceof ClubExpressError) {
+        throw error;
+      }
+      throw new ClubExpressError('LOGOUT_FAILED', 'Logout failed: An error occurred during logout');
     }
   }
 

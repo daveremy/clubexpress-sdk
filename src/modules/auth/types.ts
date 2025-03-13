@@ -11,6 +11,12 @@ export interface LoginCredentials {
    * Password
    */
   password: string;
+
+  /**
+   * Whether to remember the user's login
+   * @default false
+   */
+  rememberMe?: boolean;
 }
 
 /**

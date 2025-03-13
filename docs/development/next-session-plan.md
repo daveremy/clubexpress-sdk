@@ -1,62 +1,62 @@
 # Next Development Session Plan
 
-## Session Goal: Implement Court Discovery Functionality
+## Session Goal: Implement Event Discovery Functionality
 
-For the next development session, we will focus on implementing the court discovery functionality, which is the first part of the court booking vertical slice. This builds on our successful authentication implementation.
+For the next development session, we will focus on implementing the event discovery functionality, which is the first part of the event registration vertical slice. This builds on our successful court booking implementation.
 
 ## Tasks
 
-### 1. Analyze ClubExpress Court Listing Pages
-- Examine the HTML structure of the court listing pages
-- Identify the endpoints for fetching court information
-- Determine how court availability is represented
+### 1. Analyze ClubExpress Event Listing Process
+- Examine the HTML structure of the event listing pages
+- Identify the endpoints for retrieving events
+- Determine the parameters for filtering events
+- Analyze the event details pages
 - Document the findings
 
-### 2. Create Court Module Structure
-- Create the court module directory structure (`src/modules/courts/`)
-- Define the core types for courts and availability (`types.ts`)
-- Set up the module interface (`courts.module.ts`)
+### 2. Create Event Module
+- Create a new event module in the SDK
+- Define the types for events and event listings
+- Implement the event discovery methods
 
-### 3. Implement Court Discovery Methods
-- Implement method to find all courts
-- Implement method to find available courts by date/time
-- Add filtering capabilities (court type, features)
-- Handle pagination if necessary
+### 3. Implement Event Discovery Methods
+- Implement method to find all events
+- Implement method to find events by date range
+- Add filtering capabilities (event type, category)
+- Implement method to get event details
 
 ### 4. Write Tests
-- Create unit tests for the court discovery functionality
+- Create unit tests for the event discovery functionality
 - Mock the ClubExpress responses for testing
-- Test different scenarios (no courts, multiple courts, filtering)
-- Create an integration test that uses the authentication module
+- Test different scenarios (all events, filtered events, date ranges)
+- Create integration tests for the event module
 
-### 5. Create Court Discovery Test Script
-- Create a test script similar to `test-auth.ts` for court discovery (`scripts/test-courts.ts`)
-- Ensure the script tests the end-to-end functionality of court discovery
+### 5. Create Event Discovery Test Script
+- Create a test script for event discovery (`scripts/test-event-discovery.ts`)
+- Ensure the script tests the end-to-end functionality of event discovery
 - Include authentication as a prerequisite step
-- Make the script runnable via npm script (`npm run test:courts`)
+- Make the script runnable via npm script (`npm run test:events`)
 
 ### 6. Document the API
 - Add JSDoc comments to all methods
-- Update the README with court discovery examples
+- Update the README with event discovery examples
 - Document any limitations or edge cases
 
 ## Implementation Approach
 
-1. We will start by creating a new module directory `src/modules/courts`
-2. Define the core types in `src/modules/courts/types.ts`
-3. Implement the court module in `src/modules/courts/courts.module.ts`
-4. Create tests in `tests/modules/courts/courts.module.test.ts`
-5. Create a script for testing court discovery in `scripts/test-courts.ts`
-6. Update the main index.ts to export the new module
-7. Run the authentication test (`npm run test:auth`) to ensure our changes don't break authentication
+1. We will create a new module in `src/modules/events`
+2. Define types in `src/modules/events/types.ts` for events
+3. Implement the event discovery methods in `src/modules/events/events.module.ts`
+4. Create tests in `tests/modules/events/events.module.test.ts`
+5. Create a script for testing event discovery in `scripts/test-event-discovery.ts`
+6. Update the documentation to include the new functionality
 
 ## Development Process
 
 To maintain the quality and reliability of our SDK, we'll follow these practices during development:
 
-1. **Run Authentication Test**: Before committing any changes, run `npm run test:auth` to ensure we haven't broken the authentication functionality.
+1. **Run Existing Tests**: Before committing any changes, run the existing tests to ensure we haven't broken any functionality.
 
-2. **Create Court Discovery Test**: Develop a similar test script for court discovery that will become part of our standard testing process.
+2. **Test-Driven Development**: Write tests for the event discovery functionality before implementing it.
 
 3. **Incremental Development**: Implement and test one feature at a time, ensuring each component works before moving to the next.
 
@@ -64,27 +64,28 @@ To maintain the quality and reliability of our SDK, we'll follow these practices
 
 ## Expected Challenges
 
-- The court listing pages may have complex HTML structures
-- Court availability might be loaded dynamically with JavaScript
-- Filtering options might be complex or require multiple requests
-- Pagination handling might be required for clubs with many courts
-- Different clubs might have different court naming conventions
+- The event listing pages may have complex HTML structures
+- Events may have different formats or types
+- Date handling for recurring events
+- Filtering events by various criteria
+- Extracting detailed event information
+- Handling pagination for large event lists
 
 ## Success Criteria
 
-- The court discovery methods should work with the actual ClubExpress platform
-- All tests should pass, including the authentication test
-- The new court discovery test script should successfully verify the functionality
+- The event discovery methods should work with the actual ClubExpress platform
+- All tests should pass, including the existing tests
+- The new event discovery test script should successfully verify the functionality
 - The API should be well-documented
-- The module should be integrated into the main SDK export
 - The implementation should follow our HTTP-first approach
+- The event discovery functionality should handle errors gracefully
 
 ## Preparation
 
 Before the next session, we should:
 
-1. Explore the ClubExpress court booking pages manually to understand the flow
+1. Explore the ClubExpress event listing pages manually to understand the structure
 2. Take screenshots or save HTML of relevant pages for analysis
 3. Identify any club-specific customizations that might affect the implementation
-4. Review the authentication module to ensure we can leverage it effectively for court discovery
-5. Run the authentication test to ensure we're starting with a solid foundation 
+4. Review the court discovery implementation for patterns we can reuse
+5. Run the existing tests to ensure we're starting with a solid foundation 
