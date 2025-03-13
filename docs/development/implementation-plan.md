@@ -9,6 +9,7 @@ This document outlines the implementation plan for the ClubExpress SDK, focusing
 - **Minimal Dependencies**: Keep the codebase lean
 - **Clean Architecture**: Maintain a clean, modular project structure
 - **Test-Driven**: Ensure all functionality is thoroughly tested
+- **Flexibility**: Support club-specific configurations and rules
 
 ## Testing Approach
 
@@ -25,9 +26,11 @@ For each major module, we develop end-to-end test scripts that verify functional
 
 1. **Authentication Test Script** (`scripts/test-auth.ts`): Tests the complete authentication flow, including login, session validation, and logout.
 
-2. **Court Discovery Test Script** (planned): Will test the ability to find courts and check availability.
+2. **Court Discovery Test Script** (`scripts/test-courts.ts`): Tests the ability to find courts and check availability.
 
-3. **Court Booking Test Script** (planned): Will test the ability to book courts and manage bookings.
+3. **Court Booking Test Script** (`scripts/test-court-booking.ts`): Tests the ability to book courts and manage bookings.
+
+4. **CLI Tool** (`scripts/courts-cli.ts`): Interactive CLI tool for testing and demonstrating SDK functionality.
 
 These test scripts are run as part of our development process before committing changes to ensure we don't introduce regressions.
 
@@ -61,18 +64,29 @@ These test scripts are run as part of our development process before committing 
 - [x] Create authentication tests
 - [x] Document authentication API
 
-## Phase 2: Court Booking - First Vertical Slice (Current)
+## Phase 2: Court Booking - First Vertical Slice
 
-### 2.1 Court Discovery (Current)
+### 2.1 Court Discovery (Completed)
 
-- [ ] Implement method to find all courts
-- [ ] Implement method to find available courts by date/time
-- [ ] Add filtering capabilities (court type, features)
-- [ ] Create tests for court discovery
-- [ ] Create end-to-end test script for court discovery
-- [ ] Document court discovery API
+- [x] Implement method to find all courts
+- [x] Implement method to find available courts by date/time
+- [x] Add filtering capabilities (court type, features)
+- [x] Create tests for court discovery
+- [x] Create end-to-end test script for court discovery
+- [x] Document court discovery API
+- [x] Implement CLI tool for court discovery
 
-### 2.2 Court Booking
+### 2.2 Club Configuration (Current)
+
+- [ ] Design ClubConfig interface for club-specific settings
+- [ ] Implement default configuration
+- [ ] Make configuration injectable into the SDK
+- [ ] Refactor validation logic to use configuration
+- [ ] Update tests to use configuration
+- [ ] Document configuration options
+- [ ] Update CLI to use configuration
+
+### 2.3 Court Booking
 
 - [ ] Implement method to book a court
 - [ ] Handle booking confirmation
@@ -80,8 +94,9 @@ These test scripts are run as part of our development process before committing 
 - [ ] Create tests for court booking
 - [ ] Create end-to-end test script for court booking
 - [ ] Document court booking API
+- [ ] Update CLI tool for court booking
 
-### 2.3 Booking Management
+### 2.4 Booking Management
 
 - [ ] Implement method to view user's bookings
 - [ ] Implement method to cancel a booking
@@ -89,10 +104,22 @@ These test scripts are run as part of our development process before committing 
 - [ ] Create tests for booking management
 - [ ] Create end-to-end test script for booking management
 - [ ] Document booking management API
+- [ ] Update CLI tool for booking management
 
 ## Phase 3: Additional Features and Refinement
 
-### 3.1 Error Handling and Edge Cases
+### 3.1 Event Registration
+
+- [ ] Implement method to find all events
+- [ ] Implement method to find events by date range
+- [ ] Add filtering capabilities (event type, category)
+- [ ] Implement method to register for events
+- [ ] Create tests for event registration
+- [ ] Create end-to-end test script for event registration
+- [ ] Document event registration API
+- [ ] Create CLI tool for event registration
+
+### 3.2 Error Handling and Edge Cases
 
 - [ ] Improve error handling throughout the SDK
 - [ ] Handle network failures gracefully
@@ -100,7 +127,7 @@ These test scripts are run as part of our development process before committing 
 - [ ] Add comprehensive logging
 - [ ] Create tests for error scenarios
 
-### 3.2 Documentation and Examples
+### 3.3 Documentation and Examples
 
 - [ ] Create comprehensive API documentation
 - [ ] Add JSDoc comments throughout the codebase
@@ -108,7 +135,7 @@ These test scripts are run as part of our development process before committing 
 - [ ] Document known limitations
 - [ ] Create user guide
 
-### 3.3 Performance Optimization
+### 3.4 Performance Optimization
 
 - [ ] Optimize HTTP requests
 - [ ] Implement caching where appropriate
@@ -140,19 +167,34 @@ These test scripts are run as part of our development process before committing 
    - [x] Clear session data
    - [x] Verify successful logout
 
-### Court Discovery Flow (Current)
+### Court Discovery Flow (Completed)
 
 1. **Court Listing**
-   - [ ] Identify endpoints for court listings
-   - [ ] Parse court data from responses
-   - [ ] Map response data to SDK objects
-   - [ ] Handle pagination if necessary
+   - [x] Identify endpoints for court listings
+   - [x] Parse court data from responses
+   - [x] Map response data to SDK objects
+   - [x] Handle pagination if necessary
 
 2. **Availability Checking**
-   - [ ] Identify endpoints for checking availability
-   - [ ] Implement date/time filtering
-   - [ ] Parse availability data
-   - [ ] Handle no availability scenarios
+   - [x] Identify endpoints for checking availability
+   - [x] Implement date/time filtering
+   - [x] Parse availability data
+   - [x] Handle no availability scenarios
+   - [x] Create CLI interface for court discovery
+
+### Club Configuration Flow (Current)
+
+1. **Configuration Design**
+   - [ ] Define ClubConfig interface
+   - [ ] Identify club-specific settings and rules
+   - [ ] Create default configuration
+   - [ ] Design configuration injection mechanism
+
+2. **SDK Integration**
+   - [ ] Update client constructor to accept configuration
+   - [ ] Refactor validation logic to use configuration
+   - [ ] Add configuration documentation
+   - [ ] Create examples of custom configurations
 
 ### Court Booking Flow
 
@@ -162,9 +204,12 @@ These test scripts are run as part of our development process before committing 
    - [ ] Implement booking request
    - [ ] Parse booking confirmation
    - [ ] Handle booking failures
+   - [ ] Update CLI interface for court booking
 
-2. **Booking Cancellation**
-   - [ ] Identify cancellation endpoints
-   - [ ] Implement cancellation request
+2. **Booking Management**
+   - [ ] Identify endpoints for viewing bookings
+   - [ ] Parse booking data from responses
+   - [ ] Implement booking cancellation
    - [ ] Verify successful cancellation
-   - [ ] Handle cancellation failures 
+   - [ ] Handle cancellation failures
+   - [ ] Update CLI interface for booking management 

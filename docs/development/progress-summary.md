@@ -4,12 +4,13 @@ This document tracks the progress of the ClubExpress SDK development.
 
 ## Current Status
 
-We have completed the initial project setup, successfully implemented the core HTTP client and authentication module, and now implemented the court discovery and booking functionality. The SDK now has the following capabilities:
+We have completed the initial project setup, successfully implemented the core HTTP client and authentication module, and now implemented the court discovery functionality with a robust CLI tool. The SDK now has the following capabilities:
 
 - Project structure and configuration files
 - Core HTTP client with robust cookie management and error handling
 - Authentication module with login, session validation, and logout functionality
-- Courts module with court discovery, availability checking, booking, cancellation, and booking retrieval
+- Courts module with court discovery and availability checking
+- Interactive CLI tool with colored output and debug mode for testing and demonstrating SDK functionality
 - Comprehensive tests for the HTTP client, authentication module, and courts module
 
 ## Completed Tasks
@@ -49,16 +50,30 @@ We have completed the initial project setup, successfully implemented the core H
 - [x] Create tests for court discovery
 - [x] Create end-to-end test script for court discovery
 - [x] Document court discovery API
+- [x] Implement CLI tool for court discovery with colored output
+- [x] Add debug mode toggle to CLI tool
 
-#### 2.2 Court Booking
-- [x] Implement method to book a court
-- [x] Handle booking confirmation
-- [x] Implement error handling for booking failures
-- [x] Implement method to cancel a booking
-- [x] Implement method to retrieve user's bookings
-- [x] Create tests for court booking
-- [x] Create end-to-end test script for court booking
-- [x] Document court booking API
+## In Progress
+
+#### 2.2 Club Configuration
+- [ ] Design ClubConfig interface for club-specific settings
+- [ ] Implement default configuration
+- [ ] Make configuration injectable into the SDK
+- [ ] Refactor validation logic to use configuration
+- [ ] Update tests to use configuration
+- [ ] Document configuration options
+- [ ] Update CLI to use configuration
+
+## Next Steps
+
+#### 2.3 Court Booking
+- [ ] Implement method to book a court
+- [ ] Handle booking confirmation
+- [ ] Implement error handling for booking failures
+- [ ] Create tests for court booking
+- [ ] Create end-to-end test script for court booking
+- [ ] Document court booking API
+- [ ] Update CLI tool for court booking
 
 ## Development Process
 
@@ -88,18 +103,17 @@ Similar to the authentication testing, we've created a court discovery test scri
 
 This test ensures that our court discovery functionality works correctly against the actual ClubExpress platform.
 
-### Court Booking Testing
+### CLI Tool
 
-We've also created a court booking test script (`npm run test:court-booking`) that verifies the end-to-end functionality of the court booking features. This script:
+We've developed an interactive CLI tool (`npm run cli:courts`) that demonstrates the SDK's functionality and provides a user-friendly interface for testing. The CLI tool includes:
 
-1. Logs in to the ClubExpress site
-2. Finds available courts for a specific date
-3. Books a court
-4. Retrieves the user's bookings
-5. Cancels the booking
-6. Logs out
+1. **Authentication**: Login and logout functionality
+2. **Court Discovery**: Finding available courts with date and time filters
+3. **Full Day Grid View**: Displaying a visual grid of court availability for a specific date
+4. **Debug Mode Toggle**: Enabling/disabling debug output for troubleshooting
+5. **Colored Output**: Using chalk for improved readability and visual appeal
 
-This test ensures that our court booking functionality works correctly against the actual ClubExpress platform.
+The CLI tool serves as both a demonstration of the SDK's capabilities and a practical utility for users who want to quickly check court availability from the command line.
 
 ### Testing Strategy
 
@@ -111,19 +125,38 @@ We've implemented a comprehensive testing strategy for the courts module:
 
 3. **End-to-End Tests**: We've created end-to-end tests that verify the functionality against the actual ClubExpress platform.
 
+4. **CLI Testing**: We've developed an interactive CLI tool that allows for manual testing and demonstration of the SDK's functionality.
+
 This multi-layered approach ensures that our implementation is robust and reliable, with good test coverage at all levels.
 
 ## Next Steps
 
-### Phase 3: Event Registration
+### Club Configuration Implementation
 
-#### 3.1 Event Discovery
-- [ ] Implement method to find all events
-- [ ] Implement method to find events by date range
-- [ ] Add filtering capabilities (event type, category)
-- [ ] Create tests for event discovery
-- [ ] Create end-to-end test script for event discovery
-- [ ] Document event discovery API
+Our next focus is implementing a club configuration system that will make the SDK more flexible and adaptable to different clubs' needs. This will include:
+
+1. **Configuration Interface**
+   - Design a comprehensive `ClubConfig` interface
+   - Identify all club-specific settings and rules
+   - Create a default configuration with sensible defaults
+   - Design a mechanism for injecting custom configurations
+
+2. **Core Client Integration**
+   - Modify the `ClubExpressClient` constructor to accept a configuration object
+   - Implement configuration merging with defaults
+   - Add methods to access and update configuration at runtime
+
+3. **Validation Refactoring**
+   - Replace hardcoded rules with configuration-based validation
+   - Update the validation methods to use configuration
+   - Ensure backward compatibility for existing code
+
+4. **CLI Updates**
+   - Modify the CLI to use the configuration system
+   - Add ability to display current configuration
+   - Implement command-line options to override configuration settings
+
+This configuration system will be particularly important for court booking rules, which can vary significantly between different clubs using ClubExpress.
 
 ## Challenges and Solutions
 
@@ -160,21 +193,37 @@ We implemented the court discovery functionality by analyzing the ClubExpress co
 
 6. **Testing Challenges**: We encountered challenges with testing the HTML parsing functionality, particularly with mocking the cheerio library. We resolved these by implementing integration-style tests that focus on the behavior rather than the implementation details.
 
-### Court Booking Implementation
+### CLI Tool Implementation
 
-We implemented the court booking functionality by analyzing the ClubExpress court reservation system. Key aspects of the implementation include:
+We developed an interactive CLI tool to demonstrate the SDK's functionality and provide a user-friendly interface for testing. Key aspects of the implementation include:
 
-1. **Booking Form Analysis**: We identified the endpoints and form fields required for court booking, including hidden fields that need to be extracted from the booking form.
+1. **Interactive Menu**: We created a menu-driven interface that allows users to navigate through different features of the SDK.
 
-2. **Booking Confirmation**: We implemented methods to handle booking confirmations and extract booking details from the confirmation page.
+2. **Colored Output**: We used the chalk package to add colored text output, improving readability and visual appeal.
 
-3. **Cancellation Handling**: We added functionality to cancel existing bookings, including handling cancellation confirmations and errors.
+3. **Debug Mode Toggle**: We implemented a debug mode toggle that allows users to enable or disable detailed debug output for troubleshooting.
 
-4. **Booking Retrieval**: We implemented methods to retrieve a user's current bookings, with options to filter by date range.
+4. **Grid Display**: We created a visual grid display for court availability, making it easy to see which courts are available at different times.
 
-5. **Error Handling**: We added comprehensive error handling for booking operations, with specific error codes and messages for different failure scenarios.
+5. **User-Friendly Formatting**: We improved the formatting of dates, times, and court information to make the output more readable and user-friendly.
 
-6. **Testing Strategy**: We implemented a robust testing strategy for the booking functionality, including unit tests, integration tests, and end-to-end tests.
+6. **Command-Line Arguments**: We added support for command-line arguments, such as `--debug`, to enable features from the start.
+
+### Club-Specific Rules
+
+We identified that many aspects of the court booking process are club-specific, such as:
+
+1. **Booking Window**: The number of days in advance that bookings can be made (e.g., 7 days).
+
+2. **Booking Open Time**: The time of day when bookings open for the maximum advance date (e.g., 1:00 PM).
+
+3. **Booking Limits**: The number of courts a member can book per day (e.g., 1 court).
+
+4. **Time Slot Duration**: The standard duration for court bookings (e.g., 90 minutes).
+
+5. **Valid Start Times**: The specific times when bookings can start (e.g., 8:00 AM, 9:30 AM, etc.).
+
+To address this, we're implementing a club configuration system that will make these rules configurable, allowing the SDK to be used by different clubs with different rules.
 
 ### Implementation Approach
 Our implementation follows these key principles:
@@ -187,14 +236,19 @@ Our implementation follows these key principles:
 
 4. **Test-Driven Development**: We've adopted a test-driven approach, writing tests before implementing functionality to ensure that our implementation meets the requirements.
 
+5. **User-Friendly Interfaces**: We've developed user-friendly interfaces, such as the CLI tool, to make the SDK more accessible and easier to use.
+
+6. **Flexibility**: We're implementing a configuration system to make the SDK adaptable to different clubs' needs and rules.
+
 ## Next Session Plan
 
-For the next development session, we will focus on implementing the event registration functionality, which is the next vertical slice. This will involve:
+For the next development session, we will focus on implementing the club configuration system, which will make the SDK more flexible and adaptable. This will involve:
 
-1. Analyzing the ClubExpress event listing pages
-2. Implementing methods to find events
-3. Adding filtering capabilities for events
-4. Writing tests for the event discovery functionality
-5. Documenting the event discovery API
+1. Designing a comprehensive `ClubConfig` interface
+2. Implementing default configuration with sensible defaults
+3. Making the configuration injectable into the SDK
+4. Refactoring validation logic to use configuration
+5. Updating the CLI to use the configuration system
+6. Documenting the configuration options
 
 See `docs/development/next-session-plan.md` for detailed plans for the next session.

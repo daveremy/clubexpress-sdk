@@ -1,54 +1,49 @@
 # Next Development Session Plan
 
-## Session Goal: Implement Event Discovery Functionality
+## Session Goal: Implement Club Configuration System
 
-For the next development session, we will focus on implementing the event discovery functionality, which is the first part of the event registration vertical slice. This builds on our successful court booking implementation.
+For the next development session, we will focus on implementing a club configuration system that allows for club-specific settings and rules. This is a critical enhancement that will make the SDK more flexible and adaptable to different clubs' needs, particularly for court booking rules which can vary significantly between clubs.
 
 ## Tasks
 
-### 1. Analyze ClubExpress Event Listing Process
-- Examine the HTML structure of the event listing pages
-- Identify the endpoints for retrieving events
-- Determine the parameters for filtering events
-- Analyze the event details pages
-- Document the findings
+### 1. Design the Club Configuration Interface
+- Define a comprehensive `ClubConfig` interface
+- Identify all club-specific settings and rules
+- Create a default configuration with sensible defaults
+- Design a mechanism for injecting custom configurations
 
-### 2. Create Event Module
-- Create a new event module in the SDK
-- Define the types for events and event listings
-- Implement the event discovery methods
+### 2. Update the Core Client
+- Modify the `ClubExpressClient` constructor to accept a configuration object
+- Implement configuration merging with defaults
+- Add methods to access and update configuration at runtime
+- Update relevant tests
 
-### 3. Implement Event Discovery Methods
-- Implement method to find all events
-- Implement method to find events by date range
-- Add filtering capabilities (event type, category)
-- Implement method to get event details
+### 3. Refactor Court Booking Validation
+- Replace hardcoded rules with configuration-based validation
+- Update the `validateBookingAgainstClubRules` method to use configuration
+- Ensure backward compatibility for existing code
+- Add tests for different configuration scenarios
 
-### 4. Write Tests
-- Create unit tests for the event discovery functionality
-- Mock the ClubExpress responses for testing
-- Test different scenarios (all events, filtered events, date ranges)
-- Create integration tests for the event module
+### 4. Update the CLI Tool
+- Modify the CLI to use the configuration system
+- Add ability to display current configuration
+- Implement command-line options to override configuration settings
+- Update help documentation
 
-### 5. Create Event Discovery Test Script
-- Create a test script for event discovery (`scripts/test-event-discovery.ts`)
-- Ensure the script tests the end-to-end functionality of event discovery
-- Include authentication as a prerequisite step
-- Make the script runnable via npm script (`npm run test:events`)
-
-### 6. Document the API
-- Add JSDoc comments to all methods
-- Update the README with event discovery examples
-- Document any limitations or edge cases
+### 5. Document the Configuration System
+- Add JSDoc comments to all configuration-related code
+- Create examples of custom configurations for different club scenarios
+- Update the README with configuration examples
+- Document all available configuration options
 
 ## Implementation Approach
 
-1. We will create a new module in `src/modules/events`
-2. Define types in `src/modules/events/types.ts` for events
-3. Implement the event discovery methods in `src/modules/events/events.module.ts`
-4. Create tests in `tests/modules/events/events.module.test.ts`
-5. Create a script for testing event discovery in `scripts/test-event-discovery.ts`
-6. Update the documentation to include the new functionality
+1. We will create a new file `src/core/config.ts` for the configuration interface and defaults
+2. Update the client constructor in `src/core/client.ts` to accept configuration
+3. Refactor the validation logic in `src/modules/courts/courts.module.ts`
+4. Update the CLI tool in `scripts/courts-cli.ts`
+5. Add tests for configuration in `tests/core/config.test.ts`
+6. Update documentation to include configuration examples
 
 ## Development Process
 
@@ -56,36 +51,60 @@ To maintain the quality and reliability of our SDK, we'll follow these practices
 
 1. **Run Existing Tests**: Before committing any changes, run the existing tests to ensure we haven't broken any functionality.
 
-2. **Test-Driven Development**: Write tests for the event discovery functionality before implementing it.
+2. **Test-Driven Development**: Write tests for the configuration system before implementing it.
 
 3. **Incremental Development**: Implement and test one feature at a time, ensuring each component works before moving to the next.
 
 4. **Documentation Updates**: Keep documentation updated as we implement new features.
 
+5. **CLI Testing**: Manually test the CLI tool to ensure it works with the new configuration system.
+
 ## Expected Challenges
 
-- The event listing pages may have complex HTML structures
-- Events may have different formats or types
-- Date handling for recurring events
-- Filtering events by various criteria
-- Extracting detailed event information
-- Handling pagination for large event lists
+- Ensuring backward compatibility with existing code
+- Designing a flexible configuration interface that covers all club-specific rules
+- Handling configuration validation and error reporting
+- Balancing flexibility with usability
+- Ensuring the configuration system is well-documented and easy to use
 
 ## Success Criteria
 
-- The event discovery methods should work with the actual ClubExpress platform
+- The configuration system should be flexible enough to handle different club rules
 - All tests should pass, including the existing tests
-- The new event discovery test script should successfully verify the functionality
+- The CLI tool should work with the new configuration system
 - The API should be well-documented
-- The implementation should follow our HTTP-first approach
-- The event discovery functionality should handle errors gracefully
+- The implementation should follow our clean architecture principles
+- The configuration system should be easy to use and understand
 
 ## Preparation
 
 Before the next session, we should:
 
-1. Explore the ClubExpress event listing pages manually to understand the structure
-2. Take screenshots or save HTML of relevant pages for analysis
-3. Identify any club-specific customizations that might affect the implementation
-4. Review the court discovery implementation for patterns we can reuse
-5. Run the existing tests to ensure we're starting with a solid foundation 
+1. Identify all club-specific rules and settings that need to be configurable
+2. Research best practices for configuration systems in TypeScript libraries
+3. Review the existing validation logic to identify all hardcoded rules
+4. Consider how the configuration system will evolve as we add more features
+5. Run the existing tests to ensure we're starting with a solid foundation
+
+## Configuration Interface Draft
+
+Here's a draft of what the `ClubConfig` interface might look like:
+
+```typescript
+interface ClubConfig {
+  // Court booking rules
+  courtBooking: {
+    maxDaysInAdvance: number;           // e.g., 7 days
+    bookingWindowOpenTime: string;      // e.g., "13:00" (1:00 PM)
+    maxBookingsPerDayPerMember: number; // e.g., 1
+    timeSlotDurationMinutes: number;    // e.g., 90
+    validStartTimes: string[];          // e.g., ["8:00", "9:30", "11:00", ...]
+    requireMemberPresence: boolean;     // e.g., true
+  };
+  
+  // Other club-specific settings can be added here
+  // For example, event registration rules, membership settings, etc.
+}
+```
+
+This interface will be refined during the implementation process. 

@@ -409,6 +409,9 @@ export class CourtsModule {
     }
     
     try {
+      // Validate against club rules
+      await this.validateBookingAgainstClubRules(options);
+      
       // Format date for the request
       const dateObj = new Date(options.date);
       const formattedDate = `${(dateObj.getMonth() + 1)}/${dateObj.getDate()}/${dateObj.getFullYear()}`;
@@ -538,6 +541,87 @@ export class CourtsModule {
       throw new ClubExpressError(
         'COURTS_BOOKING_FAILED',
         `Failed to book court: ${(error as Error).message}`
+      );
+    }
+  }
+
+  /**
+   * Validate booking options against club rules
+   * @param options Booking options to validate
+   * @throws ClubExpressError if the booking violates club rules
+   */
+  private async validateBookingAgainstClubRules(options: BookingOptions): Promise<void> {
+    // Rule 1: A member may reserve only one court per day for play
+    // Check if the user already has a booking for this date
+    const bookingDate = new Date(options.date);
+    const formattedDate = bookingDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    const existingBookings = await this.getMyBookings(formattedDate, formattedDate);
+    if (existingBookings.length > 0) {
+      throw new ClubExpressError(
+        'COURTS_BOOKING_RULE_VIOLATION',
+        'You can only reserve one court per day. You already have a booking for this date.'
+      );
+    }
+    
+    // Rule 2: Reservations can be made up to seven days in advance
+    const now = new Date();
+    const maxBookingDate = new Date();
+    maxBookingDate.setDate(maxBookingDate.getDate() + 7);
+    
+    if (bookingDate > maxBookingDate) {
+      throw new ClubExpressError(
+        'COURTS_BOOKING_RULE_VIOLATION',
+        `Reservations can only be made up to 7 days in advance (until ${maxBookingDate.toLocaleDateString()}).`
+      );
+    }
+    
+    // Check if it's too early to book for the max date
+    if (bookingDate.toDateString() === maxBookingDate.toDateString()) {
+      const bookingOpenTime = new Date(maxBookingDate);
+      bookingOpenTime.setHours(13, 0, 0, 0); // 1:00 PM
+      
+      if (now < bookingOpenTime) {
+        throw new ClubExpressError(
+          'COURTS_BOOKING_RULE_VIOLATION',
+          `Reservations for ${maxBookingDate.toLocaleDateString()} open at 1:00 PM today.`
+        );
+      }
+    }
+    
+    // Rule 3: Reservations are made in 1.5-hour blocks starting at 8am
+    const startTimeObj = new Date(options.startTime);
+    const endTimeObj = new Date(options.endTime);
+    
+    // Check if the duration is 90 minutes
+    const durationMinutes = (endTimeObj.getTime() - startTimeObj.getTime()) / (1000 * 60);
+    if (durationMinutes !== 90) {
+      throw new ClubExpressError(
+        'COURTS_BOOKING_RULE_VIOLATION',
+        'Reservations must be made in 1.5-hour blocks.'
+      );
+    }
+    
+    // Check if the start time is on a valid 1.5-hour block
+    // Valid start times: 8:00, 9:30, 11:00, 12:30, 14:00, 15:30, 17:00, 18:30, 20:00
+    const hours = startTimeObj.getHours();
+    const minutes = startTimeObj.getMinutes();
+    
+    const isValidStartTime = 
+      (hours === 8 && minutes === 0) ||
+      (hours === 9 && minutes === 30) ||
+      (hours === 11 && minutes === 0) ||
+      (hours === 12 && minutes === 30) ||
+      (hours === 14 && minutes === 0) ||
+      (hours === 15 && minutes === 30) ||
+      (hours === 17 && minutes === 0) ||
+      (hours === 18 && minutes === 30) ||
+      (hours === 20 && minutes === 0);
+    
+    if (!isValidStartTime) {
+      throw new ClubExpressError(
+        'COURTS_BOOKING_RULE_VIOLATION',
+        'Reservations must start at valid times (8:00, 9:30, 11:00, 12:30, 14:00, 15:30, 17:00, 18:30, 20:00).'
       );
     }
   }

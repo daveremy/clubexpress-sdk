@@ -154,6 +154,91 @@ async function handleLogin() {
 }
 
 /**
+ * Validate a date against the club's reservation rules
+ * @param date The date to validate
+ * @returns An object with isValid and message properties
+ */
+function validateReservationDate(date: Date): { isValid: boolean; message: string } {
+  const now = new Date();
+  
+  // Check if date is in the past
+  if (date < now && date.toDateString() !== now.toDateString()) {
+    return { isValid: false, message: 'Cannot make reservations for dates in the past.' };
+  }
+  
+  // Calculate the maximum allowed booking date (7 days from now)
+  const maxDate = new Date();
+  maxDate.setDate(maxDate.getDate() + 7);
+  
+  // Check if date is more than 7 days in the future
+  if (date > maxDate) {
+    return { 
+      isValid: false, 
+      message: `Reservations can only be made up to 7 days in advance (until ${maxDate.toLocaleDateString()}).` 
+    };
+  }
+  
+  // Check if it's too early to book for the max date
+  if (date.toDateString() === maxDate.toDateString()) {
+    const bookingOpenTime = new Date(maxDate);
+    bookingOpenTime.setHours(13, 0, 0, 0); // 1:00 PM
+    
+    if (now < bookingOpenTime) {
+      return { 
+        isValid: false, 
+        message: `Reservations for ${maxDate.toLocaleDateString()} open at 1:00 PM today.` 
+      };
+    }
+  }
+  
+  return { isValid: true, message: '' };
+}
+
+/**
+ * Parse a date string in various formats
+ * @param dateInput The date string to parse
+ * @returns A Date object or null if invalid
+ */
+function parseDate(dateInput: string): Date | null {
+  // Handle "today" and "tomorrow"
+  if (dateInput.toLowerCase() === 'today') {
+    return new Date();
+  } else if (dateInput.toLowerCase() === 'tomorrow') {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return tomorrow;
+  }
+  
+  // Try MM/DD/YYYY format
+  if (dateInput.includes('/')) {
+    const parts = dateInput.split('/');
+    if (parts.length === 3) {
+      const month = parseInt(parts[0]) - 1; // JS months are 0-indexed
+      const day = parseInt(parts[1]);
+      let year = parseInt(parts[2]);
+      
+      // Handle 2-digit years
+      if (year < 100) {
+        year += 2000;
+      }
+      
+      const date = new Date(year, month, day);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
+    }
+  }
+  
+  // Try YYYY-MM-DD format
+  const isoDate = new Date(dateInput);
+  if (!isNaN(isoDate.getTime())) {
+    return isoDate;
+  }
+  
+  return null;
+}
+
+/**
  * Handle finding available courts
  */
 async function handleFindAvailableCourts() {
@@ -166,21 +251,21 @@ async function handleFindAvailableCourts() {
   console.log('\n' + chalk.bold.blue('--- Find Available Courts ---'));
   
   // Ask for date
-  const dateInput = await askQuestion('Enter date (YYYY-MM-DD) or "today" or "tomorrow": ');
+  const dateInput = await askQuestion('Enter date (MM/DD/YYYY or YYYY-MM-DD) or "today" or "tomorrow": ');
   
-  let date: Date;
-  if (dateInput.toLowerCase() === 'today') {
-    date = new Date();
-  } else if (dateInput.toLowerCase() === 'tomorrow') {
-    date = new Date();
-    date.setDate(date.getDate() + 1);
-  } else {
-    date = new Date(dateInput);
-    if (isNaN(date.getTime())) {
-      console.log(chalk.red('Invalid date format. Please use YYYY-MM-DD.'));
-      await showMainMenu();
-      return;
-    }
+  const date = parseDate(dateInput);
+  if (!date) {
+    console.log(chalk.red('Invalid date format. Please use MM/DD/YYYY or YYYY-MM-DD.'));
+    await showMainMenu();
+    return;
+  }
+  
+  // Validate date against club rules
+  const validation = validateReservationDate(date);
+  if (!validation.isValid) {
+    console.log(chalk.red(validation.message));
+    await showMainMenu();
+    return;
   }
   
   const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
@@ -250,16 +335,30 @@ async function handleFindAvailableCourts() {
           const startTimeStr = formatTime(startTimeObj);
           const endTimeStr = formatTime(endTimeObj);
           
-          console.log(`   ${chalk.cyan(`${slotIndex + 1}.`)} ${chalk.green(`${startTimeStr} - ${endTimeStr}`)} MST (${slot.durationMinutes} minutes)`);
+          // Check if this is a full 90-minute block
+          const durationMinutes = (endTimeObj.getTime() - startTimeObj.getTime()) / (1000 * 60);
+          const isFullBlock = durationMinutes === 90 && startTimeObj.getMinutes() % 30 === 0;
+          
+          const timeDisplay = `${startTimeStr} - ${endTimeStr}`;
+          if (isFullBlock) {
+            console.log(`   ${chalk.cyan(`${slotIndex + 1}.`)} ${chalk.green(timeDisplay)} MST (${slot.durationMinutes} minutes)`);
+          } else {
+            console.log(`   ${chalk.cyan(`${slotIndex + 1}.`)} ${chalk.yellow(timeDisplay)} MST (${slot.durationMinutes} minutes) - ${chalk.red('Not a full 90-minute block')}`);
+          }
         });
       });
       
       console.log('\n' + chalk.yellow('Tip: Use option 6 from the main menu to view the full day grid.'));
+      console.log('\n' + chalk.yellow('Club Reservation Rules:'));
+      console.log('1. A member may reserve only one court per day for play and must be present.');
+      console.log('2. Reservations can be made up to seven days in advance, opening at 1:00 PM.');
+      console.log('3. Reservations are made in 1.5-hour blocks starting at 8:00 AM.');
+      console.log('4. Only book full time blocks. Skip partial blocks and book the next full block.');
     } else {
       console.log(chalk.yellow('No courts available for the selected date and time.'));
       console.log('Note: This could be because:');
       console.log('1. All courts are booked for this date');
-      console.log('2. The date you selected is outside the booking window');
+      console.log('2. The date you selected is outside the booking window (max 7 days in advance)');
       console.log('3. There are no courts available that match your time criteria');
       console.log('\nThe SDK is now using the direct API that ClubExpress uses internally,');
       console.log('so the availability information should be accurate.');
@@ -267,6 +366,14 @@ async function handleFindAvailableCourts() {
     }
   } catch (error) {
     console.log(chalk.red(`❌ Failed to find available courts: ${error instanceof Error ? error.message : String(error)}`));
+    
+    // Provide more helpful error messages based on common issues
+    if (error instanceof Error && error.message.includes('404')) {
+      console.log(chalk.yellow('\nPossible reasons for this error:'));
+      console.log('1. The date is too far in the future (max 7 days in advance)');
+      console.log('2. The date format was not recognized by the server');
+      console.log('3. The ClubExpress API endpoint may have changed');
+    }
   }
   
   await showMainMenu();
@@ -290,6 +397,13 @@ async function handleBookCourt() {
   
   console.log('\n' + chalk.bold.blue('--- Book a Court ---'));
   
+  // Display club reservation rules
+  console.log(chalk.yellow('\nClub Reservation Rules:'));
+  console.log('1. A member may reserve only one court per day for play and must be present.');
+  console.log('2. Reservations can be made up to seven days in advance, opening at 1:00 PM.');
+  console.log('3. Reservations are made in 1.5-hour blocks starting at 8:00 AM.');
+  console.log('4. Only book full time blocks. Skip partial blocks and book the next full block.\n');
+  
   // Display available courts
   console.log(chalk.bold('Available courts:'));
   availableCourts.forEach((courtAvailability, courtIndex) => {
@@ -310,27 +424,95 @@ async function handleBookCourt() {
   
   // Display available time slots
   console.log(`\n${chalk.bold(`Available time slots for ${selectedCourt.court.name}:`)}`);
-  selectedCourt.availableSlots.forEach((slot, slotIndex) => {
-    const startTime = new Date(slot.startTime).toLocaleTimeString();
-    const endTime = new Date(slot.endTime).toLocaleTimeString();
-    console.log(`${chalk.cyan(`${slotIndex + 1}.`)} ${chalk.green(`${startTime} - ${endTime}`)} (${slot.durationMinutes} minutes)`);
+  
+  // Filter to only show full 90-minute blocks
+  const fullTimeSlots = selectedCourt.availableSlots.filter(slot => {
+    const startTime = new Date(slot.startTime);
+    const endTime = new Date(slot.endTime);
+    const durationMinutes = (endTime.getTime() - startTime.getTime()) / (1000 * 60);
+    const isFullBlock = durationMinutes === 90 && startTime.getMinutes() % 30 === 0;
+    return isFullBlock;
+  });
+  
+  if (fullTimeSlots.length === 0) {
+    console.log(chalk.yellow('No full 1.5-hour blocks available for this court.'));
+    console.log('According to club rules, you should only book full 1.5-hour blocks.');
+    await showMainMenu();
+    return;
+  }
+  
+  fullTimeSlots.forEach((slot, slotIndex) => {
+    const startTime = new Date(slot.startTime);
+    const endTime = new Date(slot.endTime);
+    
+    // Format as HH:MM AM/PM
+    const formatTime = (date: Date) => {
+      const hours = date.getHours();
+      const minutes = date.getMinutes();
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const hour12 = hours % 12 || 12;
+      return `${hour12}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+    };
+    
+    const startTimeStr = formatTime(startTime);
+    const endTimeStr = formatTime(endTime);
+    
+    console.log(`${chalk.cyan(`${slotIndex + 1}.`)} ${chalk.green(`${startTimeStr} - ${endTimeStr}`)} MST (${slot.durationMinutes} minutes)`);
   });
   
   // Ask for time slot selection
   const slotIndexInput = await askQuestion('Enter time slot number to book: ');
   const slotIndex = parseInt(slotIndexInput) - 1;
   
-  if (isNaN(slotIndex) || slotIndex < 0 || slotIndex >= selectedCourt.availableSlots.length) {
+  if (isNaN(slotIndex) || slotIndex < 0 || slotIndex >= fullTimeSlots.length) {
     console.log(chalk.red('Invalid time slot selection.'));
     await showMainMenu();
     return;
   }
   
-  const selectedSlot = selectedCourt.availableSlots[slotIndex];
+  const selectedSlot = fullTimeSlots[slotIndex];
+  
+  // Check if the user already has a booking for this date
+  try {
+    const bookingDate = new Date(selectedCourt.date);
+    const formattedDate = bookingDate.toISOString().split('T')[0]; // YYYY-MM-DD
+    
+    const existingBookings = await courts.getMyBookings(formattedDate, formattedDate);
+    if (existingBookings.length > 0) {
+      console.log(chalk.red('You already have a booking for this date.'));
+      console.log('According to club rules, a member may reserve only one court per day.');
+      
+      console.log('\nYour existing booking:');
+      const booking = existingBookings[0];
+      console.log(`Court: ${chalk.bold(booking.court.name)}`);
+      console.log(`Date: ${chalk.cyan(new Date(booking.date).toLocaleDateString())}`);
+      console.log(`Time: ${chalk.cyan(`${new Date(booking.startTime).toLocaleTimeString()} - ${new Date(booking.endTime).toLocaleTimeString()}`)}`);
+      
+      await showMainMenu();
+      return;
+    }
+  } catch (error) {
+    console.log(chalk.yellow('Could not check existing bookings. Proceeding with caution.'));
+  }
   
   // Ask for booking details
   const purpose = await askQuestion('Enter purpose (optional): ');
   const participants = await askQuestion('Enter participants separated by commas (optional): ');
+  
+  // Confirm booking
+  console.log('\n' + chalk.bold('Booking Summary:'));
+  console.log(`Court: ${chalk.bold(selectedCourt.court.name)}`);
+  console.log(`Date: ${chalk.cyan(new Date(selectedCourt.date).toLocaleDateString())}`);
+  console.log(`Time: ${chalk.cyan(`${new Date(selectedSlot.startTime).toLocaleTimeString()} - ${new Date(selectedSlot.endTime).toLocaleTimeString()}`)}`);
+  if (purpose) console.log(`Purpose: ${purpose}`);
+  if (participants) console.log(`Participants: ${participants}`);
+  
+  const confirmBooking = await askQuestion('\nConfirm booking? (y/n): ');
+  if (confirmBooking.toLowerCase() !== 'y') {
+    console.log(chalk.yellow('Booking cancelled.'));
+    await showMainMenu();
+    return;
+  }
   
   try {
     console.log('Booking court...');
@@ -358,6 +540,17 @@ async function handleBookCourt() {
     availableCourts = await courts.findAvailableCourts(options);
   } catch (error) {
     console.log(chalk.red(`❌ Failed to book court: ${error instanceof Error ? error.message : String(error)}`));
+    
+    // Provide more helpful error messages based on common issues
+    if (error instanceof Error) {
+      if (error.message.includes('COURTS_BOOKING_RULE_VIOLATION')) {
+        console.log(chalk.yellow('\nThis error occurred because the booking violates club rules:'));
+        console.log('1. A member may reserve only one court per day for play and must be present.');
+        console.log('2. Reservations can be made up to seven days in advance, opening at 1:00 PM.');
+        console.log('3. Reservations are made in 1.5-hour blocks starting at 8:00 AM.');
+        console.log('4. Only book full time blocks. Skip partial blocks and book the next full block.');
+      }
+    }
   }
   
   await showMainMenu();
@@ -490,30 +683,32 @@ async function handleViewFullDayGrid() {
     return;
   }
   
-  console.log('\n' + chalk.bold.blue('--- Full Day Grid ---'));
+  console.log('\n' + chalk.bold.blue('--- View Full Day Grid ---'));
   
   // Ask for date
-  const dateInput = await askQuestion('Enter date (YYYY-MM-DD) or "today" or "tomorrow": ');
+  const dateInput = await askQuestion('Enter date (MM/DD/YYYY or YYYY-MM-DD) or "today" or "tomorrow": ');
   
-  let date: Date;
-  if (dateInput.toLowerCase() === 'today') {
-    date = new Date();
-  } else if (dateInput.toLowerCase() === 'tomorrow') {
-    date = new Date();
-    date.setDate(date.getDate() + 1);
-  } else {
-    date = new Date(dateInput);
-    if (isNaN(date.getTime())) {
-      console.log(chalk.red('Invalid date format. Please use YYYY-MM-DD.'));
-      await showMainMenu();
-      return;
-    }
+  const date = parseDate(dateInput);
+  if (!date) {
+    console.log(chalk.red('Invalid date format. Please use MM/DD/YYYY or YYYY-MM-DD.'));
+    await showMainMenu();
+    return;
+  }
+  
+  // Validate date against club rules
+  const validation = validateReservationDate(date);
+  if (!validation.isValid) {
+    console.log(chalk.red(validation.message));
+    await showMainMenu();
+    return;
   }
   
   const formattedDate = date.toISOString().split('T')[0]; // YYYY-MM-DD
-  console.log(`Showing grid for date: ${chalk.cyan(formattedDate)} (${date.toLocaleDateString()})`);
+  console.log(`Using date: ${chalk.cyan(formattedDate)} (${date.toLocaleDateString()})`);
   
   try {
+    console.log(`Loading full day grid for ${chalk.cyan(formattedDate)}...`);
+    
     // First, fetch the available courts to populate the grid data
     console.log('Fetching court data...');
     await courts.findAvailableCourts({ date: formattedDate });
